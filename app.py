@@ -31,8 +31,13 @@ col1, col2 = st.columns(2)
 with col1:
     reference_text = st.text_area("Reference Text")
 with col2:
-    machine_text = st.text_input("Machine Text")
+    candidate_text = st.text_input("Candidate Text")
 
+if not reference_text or not candidate_text:
+    st.warning("Please fill in both of the provided fields.")
+    st.stop()
+
+references = reference_text.splitlines()
 nltk.download("wordnet")
 meteor_score_column, bleu_score_column = st.columns(2)
 with meteor_score_column:
@@ -40,8 +45,8 @@ with meteor_score_column:
         "Meteor Score",
         round(
             meteor.get_score(
-                [reference.split() for reference in reference_text.splitlines()],
-                machine_text.split(),
+                [reference.split() for reference in references],
+                candidate_text.split(),
             ),
             4,
         ),
@@ -51,9 +56,11 @@ with bleu_score_column:
         "Bleu Score",
         round(
             bleu.get_score(
-                [reference.split() for reference in reference_text.splitlines()],
-                machine_text.split(),
+                [reference.split() for reference in references],
+                candidate_text.split(),
             ),  # type: ignore
             4,
         ),  # type: ignore
     )
+    with st.expander("Explanation (BLEU Score)"):
+        bleu.get_explanation(references, candidate_text)
