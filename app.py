@@ -7,7 +7,7 @@ st.set_page_config("Score Generator", page_icon=":gear:")
 
 with st.sidebar:
     st.header("Metric Parameters")
-    show_scores_as_percent = st.toggle("Show Scores As Percentage", False)
+    # show_scores_as_percent = st.toggle("Show Scores As Percentage", False)
 
     with st.expander("Meteor"):
         meteor = Meteor()

@@ -104,10 +104,13 @@ class Bleu:
             )
 
             st.subheader("Precisions")
-            st.markdown("precision<sub>i</sub> calculated with", unsafe_allow_html=True)
-            st.table(individual_precisions)
+            # st.markdown("precision<sub>i</sub> calculated with", unsafe_allow_html=True)
+            # st.table(individual_precisions)
+            st.write("<Empty>")
 
             st.subheader("Putting it all together")
+            st.write("<Empty>")
+            
 
         elif self.level == "corpus":
             raise NotImplementedError
