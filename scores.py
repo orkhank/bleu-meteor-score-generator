@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from enum import Enum, auto
 from typing import Literal, Optional
 import streamlit as st
 from nltk.stem.porter import PorterStemmer
@@ -15,8 +16,16 @@ from nltk.translate.meteor_score import meteor_score
 from nltk import word_tokenize
 
 
-    def __init__(self, level: Literal["sentence", "corpus"] = "sentence"):
-        self.level: Literal["sentence", "corpus"] = level
+class Level(Enum):
+    __doc__ = """The calculation level for scores.
+- **Sentence Level:** Calculate a score for only one candidate text. There may be one or more reference text.
+- **Corpus Level:** Analyze the overall quality of the candidates for the entire corpus. There may be one or more reference text for each of the candidate sentences.
+"""
+
+    SENTENCE = auto()
+    CORPUS = auto()
+
+
 class Score(ABC):
     @abstractmethod
     def __init__(self, level):
@@ -57,6 +66,8 @@ class Score(ABC):
 
 
 class Bleu(Score):
+    def __init__(self, level: Level):
+        self.level = level
         self.weights = (0.25, 0.25, 0.25, 0.25)
         self.smoothing_function = (None,)
         self.auto_reweigh: bool = False
@@ -82,7 +93,7 @@ class Bleu(Score):
         )
 
     def get_score(self, references, hypothesis):
-        if self.level == "sentence":
+        if self.level == Level.SENTENCE:
             return sentence_bleu(
                 references,
                 hypothesis,
@@ -90,7 +101,7 @@ class Bleu(Score):
                 self.smoothing_function,
                 self.auto_reweigh,
             )
-        else:
+        elif self.level == Level.CORPUS:
             return corpus_bleu(
                 references,
                 hypothesis,
@@ -98,10 +109,12 @@ class Bleu(Score):
                 self.smoothing_function,
                 self.auto_reweigh,
             )
+        else:
+            raise ValueError
 
     def show_explanation(self, references, hypothesis):
         # TODO: finish level = "sentence" and add explanation for level = "corpus"
-        if self.level == "sentence":
+        if self.level == Level.SENTENCE:
             # Tokenize candidate translation and reference translations
             candidate_tokens = word_tokenize(hypothesis.lower())
             reference_tokens = [
@@ -150,15 +163,17 @@ class Bleu(Score):
 
             st.subheader("Putting it all together")
             st.write("<Empty>")
-            
 
-        elif self.level == "corpus":
+        elif self.level == Level.CORPUS:
+            st.warning("Corpus Level Explanation To Be Implemented...")
             raise NotImplementedError
+        else:
+            raise ValueError
 
 
-    def __init__(self, level: Literal["sentence", "corpus"] = "sentence"):
-        self.level: Literal["sentence", "corpus"] = level
 class Meteor(Score):
+    def __init__(self, level: Level):
+        self.level = level
         self.preprocess = str.lower
         self.stemmer = PorterStemmer()
         self.wordnet = wordnet
@@ -184,7 +199,7 @@ class Meteor(Score):
         )
 
     def get_score(self, references, hypothesis):
-        if self.level == "sentence":
+        if self.level == Level.SENTENCE:
             return meteor_score(
                 references,
                 hypothesis,
@@ -192,5 +207,10 @@ class Meteor(Score):
                 beta=self.beta,
                 gamma=self.gamma,
             )
-        else:
+        elif self.level == Level.CORPUS:
             raise NotImplementedError
+        else:
+            raise ValueError
+
+    def show_explanation(self, references, hypothesis):
+        st.warning("To be implemented...")
