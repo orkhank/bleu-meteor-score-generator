@@ -8,6 +8,7 @@ st.set_page_config("Score Generator", page_icon=":gear:")
 with st.sidebar:
     st.header("Metric Parameters")
     # show_scores_as_percent = st.toggle("Show Scores As Percentage", False)
+    st.checkbox("Show Scores As Percentage", False, key="show_scores_as_percentage")
 
     with st.expander("Meteor"):
         meteor = Meteor()
@@ -41,26 +42,15 @@ references = reference_text.splitlines()
 nltk.download("wordnet")
 meteor_score_column, bleu_score_column = st.columns(2)
 with meteor_score_column:
-    st.metric(
-        "Meteor Score",
-        round(
-            meteor.get_score(
-                [reference.split() for reference in references],
-                candidate_text.split(),
-            ),
-            4,
-        ),
-    )
+    meteor.show_score(references, hypothesis)
 with bleu_score_column:
-    st.metric(
-        "Bleu Score",
-        round(
-            bleu.get_score(
-                [reference.split() for reference in references],
-                candidate_text.split(),
-            ),  # type: ignore
-            4,
-        ),  # type: ignore
-    )
-    with st.expander("Explanation (BLEU Score)"):
-        bleu.get_explanation(references, candidate_text)
+    bleu.show_score(references, hypothesis)
+
+st.divider()
+
+explanation_selectbox = st.selectbox("See Explanation", ["Meteor", "Bleu"])
+with st.expander(f"Explanation ({explanation_selectbox} Score)"):
+    if explanation_selectbox == "Bleu":
+        bleu.show_explanation(references, candidate_text)
+    elif explanation_selectbox == "Meteor":
+        meteor.show_explanation(references, candidate_text)

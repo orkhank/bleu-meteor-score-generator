@@ -1,4 +1,5 @@
-from typing import Literal
+from abc import ABC, abstractmethod
+from typing import Literal, Optional
 import streamlit as st
 from nltk.stem.porter import PorterStemmer
 from nltk.corpus import wordnet
@@ -14,9 +15,48 @@ from nltk.translate.meteor_score import meteor_score
 from nltk import word_tokenize
 
 
-class Bleu:
     def __init__(self, level: Literal["sentence", "corpus"] = "sentence"):
         self.level: Literal["sentence", "corpus"] = level
+class Score(ABC):
+    @abstractmethod
+    def __init__(self, level):
+        pass
+
+    @abstractmethod
+    def get_parameters(self):
+        pass
+
+    @abstractmethod
+    def get_score(self, references, hypothesis) -> float:
+        pass
+
+    @abstractmethod
+    def show_explanation(self, references, hypothesis):
+        pass
+
+    def show_score(
+        self,
+        references,
+        hypothesis,
+        show_as_percentage: Optional[bool] = None,
+    ):
+        score = self.get_score(
+            references,
+            hypothesis,
+        )
+
+        if show_as_percentage is None:
+            show_as_percentage = st.session_state["show_scores_as_percentage"]
+
+        if show_as_percentage:
+            rounded_score = f"{score*100: .1f}%"
+        else:
+            rounded_score = f"{score: .3f}"
+
+        st.metric(f"{self.__class__.__name__} Score", rounded_score)
+
+
+class Bleu(Score):
         self.weights = (0.25, 0.25, 0.25, 0.25)
         self.smoothing_function = (None,)
         self.auto_reweigh: bool = False
@@ -59,7 +99,7 @@ class Bleu:
                 self.auto_reweigh,
             )
 
-    def get_explanation(self, references, hypothesis):
+    def show_explanation(self, references, hypothesis):
         # TODO: finish level = "sentence" and add explanation for level = "corpus"
         if self.level == "sentence":
             # Tokenize candidate translation and reference translations
@@ -93,7 +133,7 @@ class Bleu:
             st.latex(r"min(1,exp(1-\frac{reference\_length}{candidate\_length}))")
             st.markdown(
                 f"""where $$reference\\_length$$ is the closest reference 
-                length (word count) to $$candidate\\_length$$ (the word count of the reference)."""
+                length (word count) to $$candidate\\_length$$ (the word count of the candidate_text)."""
             )
             st.markdown(
                 f"""In the example, given above, $$candidate\\_length$$ and $$reference\\_length$$
@@ -116,9 +156,9 @@ class Bleu:
             raise NotImplementedError
 
 
-class Meteor:
     def __init__(self, level: Literal["sentence", "corpus"] = "sentence"):
         self.level: Literal["sentence", "corpus"] = level
+class Meteor(Score):
         self.preprocess = str.lower
         self.stemmer = PorterStemmer()
         self.wordnet = wordnet
