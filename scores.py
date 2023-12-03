@@ -15,8 +15,6 @@ from nltk.translate.meteor_score import meteor_score
 from nltk import word_tokenize
 
 
-    def __init__(self, level: Literal["sentence", "corpus"] = "sentence"):
-        self.level: Literal["sentence", "corpus"] = level
 class Score(ABC):
     @abstractmethod
     def __init__(self, level):
@@ -57,6 +55,8 @@ class Score(ABC):
 
 
 class Bleu(Score):
+    def __init__(self, level: Literal["sentence", "corpus"] = "sentence"):
+        self.level: Literal["sentence", "corpus"] = level
         self.weights = (0.25, 0.25, 0.25, 0.25)
         self.smoothing_function = (None,)
         self.auto_reweigh: bool = False
@@ -156,9 +156,9 @@ class Bleu(Score):
             raise NotImplementedError
 
 
+class Meteor(Score):
     def __init__(self, level: Literal["sentence", "corpus"] = "sentence"):
         self.level: Literal["sentence", "corpus"] = level
-class Meteor(Score):
         self.preprocess = str.lower
         self.stemmer = PorterStemmer()
         self.wordnet = wordnet
@@ -194,3 +194,6 @@ class Meteor(Score):
             )
         else:
             raise NotImplementedError
+
+    def show_explanation(self, references, hypothesis):
+        st.warning("To Be Implemented...")

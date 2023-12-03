@@ -7,7 +7,6 @@ st.set_page_config("Score Generator", page_icon=":gear:")
 
 with st.sidebar:
     st.header("Metric Parameters")
-    # show_scores_as_percent = st.toggle("Show Scores As Percentage", False)
     st.checkbox("Show Scores As Percentage", False, key="show_scores_as_percentage")
 
     with st.expander("Meteor"):
@@ -42,9 +41,13 @@ references = reference_text.splitlines()
 nltk.download("wordnet")
 meteor_score_column, bleu_score_column = st.columns(2)
 with meteor_score_column:
-    meteor.show_score(references, hypothesis)
+    meteor.show_score(
+        [reference.split() for reference in references], candidate_text.split()
+    )
 with bleu_score_column:
-    bleu.show_score(references, hypothesis)
+    bleu.show_score(
+        [reference.split() for reference in references], candidate_text.split()
+    )
 
 st.divider()
 
