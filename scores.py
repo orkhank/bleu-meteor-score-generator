@@ -117,10 +117,8 @@ class Bleu(Score):
         # TODO: finish level = "sentence" and add explanation for level = "corpus"
         if self.level == Level.SENTENCE:
             # Tokenize candidate translation and reference translations
-            candidate_tokens = word_tokenize(hypothesis.lower())
-            reference_tokens = [
-                word_tokenize(reference.lower()) for reference in references
-            ]
+            candidate_tokens = hypothesis
+            reference_tokens = references
 
             # Calculate individual n-gram precisions
             individual_precisions = [

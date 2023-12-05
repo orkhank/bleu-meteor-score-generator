@@ -107,13 +107,9 @@ nltk.download("wordnet")
 meteor_score_column, bleu_score_column = st.columns(2)
 
 with meteor_score_column:
-    meteor.show_score(
-        [reference.split() for reference in references], candidate_text.split()
-    )
+    meteor.show_score(references, hypothesis)
 with bleu_score_column:
-    bleu.show_score(
-        [reference.split() for reference in references], candidate_text.split()
-    )
+    bleu.show_score(references, hypothesis)
 
 st.divider()
 
