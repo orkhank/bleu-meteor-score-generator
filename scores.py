@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import Literal, Optional
+import numpy as np
 import streamlit as st
 from nltk.stem.porter import PorterStemmer
 from nltk.corpus import wordnet
@@ -166,7 +167,6 @@ class Bleu(Score):
 
         elif self.level == Level.CORPUS:
             st.warning("Corpus Level Explanation To Be Implemented...")
-            raise NotImplementedError
         else:
             raise ValueError
 
@@ -208,7 +208,13 @@ class Meteor(Score):
                 gamma=self.gamma,
             )
         elif self.level == Level.CORPUS:
-            raise NotImplementedError
+            meteor_score_sentences_list = list()
+            [
+                meteor_score_sentences_list.append(meteor_score(expect, predict))
+                for expect, predict in zip(references, hypothesis)
+            ]
+            meteor_score_res = np.mean(meteor_score_sentences_list)
+            return meteor_score_res
         else:
             raise ValueError
 
