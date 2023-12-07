@@ -41,6 +41,10 @@ class Score(ABC):
         pass
 
     @abstractmethod
+    def get_score_description(self) -> str:
+        pass
+
+    @abstractmethod
     def show_explanation(self, references, hypothesis):
         pass
 
@@ -63,7 +67,11 @@ class Score(ABC):
         else:
             rounded_score = f"{score: .3f}"
 
-        st.metric(f"{self.__class__.__name__} Score", rounded_score)
+        st.metric(
+            f"{self.__class__.__name__} Score",
+            rounded_score,
+            help=self.get_score_description(),
+        )
 
 
 class Bleu(Score):
@@ -95,6 +103,9 @@ class Bleu(Score):
 
     def get_score(self, references, hypothesis):
         if self.level == Level.SENTENCE:
+            """Calculate BLEU score (Bilingual Evaluation Understudy) from Papineni, Kishore, Salim Roukos, Todd Ward, and Wei-Jing Zhu. 2002.
+            "BLEU: a method for automatic evaluation of machine translation." In Proceedings of ACL. https://www.aclweb.org/anthology/P02-1040.pdf
+            """
             return sentence_bleu(
                 references,
                 hypothesis,
@@ -103,6 +114,14 @@ class Bleu(Score):
                 self.auto_reweigh,
             )
         elif self.level == Level.CORPUS:
+            """
+            Calculate a single corpus-level BLEU score (aka. system-level BLEU)
+            for all the hypotheses and their respective references.
+
+            Instead of averaging the sentence level BLEU scores (i.e. macro-average precision),
+            the original BLEU metric (Papineni et al. 2002) accounts for the micro-average precision
+            (i.e. summing the numerators and denominators for each hypothesis-reference(s) pairs before the division).
+            """
             return corpus_bleu(
                 references,
                 hypothesis,
@@ -110,6 +129,23 @@ class Bleu(Score):
                 self.smoothing_function,
                 self.auto_reweigh,
             )
+        else:
+            raise ValueError
+
+    def get_score_description(self) -> str:
+        if self.level == Level.SENTENCE:
+            return """
+            Calculate BLEU score (Bilingual Evaluation Understudy) from https://www.aclweb.org/anthology/P02-1040.pdf
+            """
+        elif self.level == Level.CORPUS:
+            return """
+            Calculate a single corpus-level BLEU score (aka. system-level BLEU)
+            for all the hypotheses and their respective references.
+
+            Instead of averaging the sentence level BLEU scores (i.e. macro-average precision),
+            the original BLEU metric accounts for the micro-average precision
+            (i.e. summing the numerators and denominators for each hypothesis-reference(s) pairs before the division).
+            """
         else:
             raise ValueError
 
@@ -206,6 +242,8 @@ class Meteor(Score):
                 gamma=self.gamma,
             )
         elif self.level == Level.CORPUS:
+            """The mean of the METEOR scores for all of the hypotheses with multiple references."""
+
             meteor_score_sentences_list = list()
             [
                 meteor_score_sentences_list.append(meteor_score(expect, predict))
@@ -213,6 +251,20 @@ class Meteor(Score):
             ]
             meteor_score_res = np.mean(meteor_score_sentences_list)
             return meteor_score_res
+        else:
+            raise ValueError
+
+    def get_score_description(self) -> str:
+        if self.level == Level.SENTENCE:
+            return """
+            METEOR score for hypothesis with multiple references as
+            described in https://www.cs.cmu.edu/~alavie/METEOR/pdf/Lavie-Agarwal-2007-METEOR.pdf.
+
+            In case of multiple references the best score is chosen. This method iterates over
+            single_meteor_score and picks the best pair among all the references for a given hypothesis.
+            """
+        elif self.level == Level.CORPUS:
+            return """The mean of the METEOR scores for all of the hypotheses with multiple references."""
         else:
             raise ValueError
 
