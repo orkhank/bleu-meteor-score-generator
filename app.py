@@ -48,10 +48,12 @@ if level == Level.SENTENCE:
         }
     )
     edited_df = st.data_editor(df, use_container_width=True)
-    references = [
+    references = st.session_state["sentence_references"] = [
         reference_text.split() for reference_text in reference_text_area.splitlines()
     ]
-    hypothesis = edited_df["Candidate"].tolist()[0].split()
+    hypothesis = st.session_state["sentence_hypothesis"] = (
+        edited_df["Candidate"].tolist()[0].split()
+    )
 
 elif level == Level.CORPUS:
     references = st.session_state.setdefault("corpus_references", [])
