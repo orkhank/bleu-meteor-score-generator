@@ -111,11 +111,11 @@ with meteor_score_column:
 with bleu_score_column:
     bleu.show_score(references, hypothesis)
 
-st.divider()
+# st.divider()
 
-explanation_selectbox = st.selectbox("See Explanation", ["Meteor", "Bleu"])
-with st.expander(f"Explanation ({explanation_selectbox} Score)"):
-    if explanation_selectbox == "Bleu":
-        bleu.show_explanation(references, hypothesis)
-    elif explanation_selectbox == "Meteor":
-        meteor.show_explanation(references, hypothesis)
+# explanation_selectbox = st.selectbox("See Explanation", ["Meteor", "Bleu"])
+# with st.expander(f"Explanation ({explanation_selectbox} Score)"):
+#     if explanation_selectbox == "Bleu":
+#         bleu.show_explanation(references, hypothesis)
+#     elif explanation_selectbox == "Meteor":
+#         meteor.show_explanation(references, hypothesis)
