@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import Literal, Optional
+from typing import List, Optional
 import numpy as np
 import streamlit as st
 from nltk.stem.porter import PorterStemmer
@@ -14,7 +14,6 @@ from nltk.translate.bleu_score import (
     closest_ref_length,
 )
 from nltk.translate.meteor_score import meteor_score
-from nltk import word_tokenize
 
 
 class Level(Enum):
@@ -41,12 +40,21 @@ class Score(ABC):
         pass
 
     @abstractmethod
-    def get_score_description(self) -> str:
+    def get_score_tooltip(self) -> str:
         pass
 
     @abstractmethod
     def show_explanation(self, references, hypothesis):
         pass
+
+    def get_score_description(self) -> str:
+        """
+        Get the description of the scoring metric from a Markdown file.
+        """
+        with open(
+            f"{self.__class__.__name__.lower()}_description.md", encoding="utf8"
+        ) as f:
+            return f.read()
 
     def show_score(
         self,
@@ -54,6 +62,9 @@ class Score(ABC):
         hypothesis,
         show_as_percentage: Optional[bool] = None,
     ):
+        """
+        Display the calculated score using Streamlit.
+        """
         score = self.get_score(
             references,
             hypothesis,
@@ -70,7 +81,7 @@ class Score(ABC):
         st.metric(
             f"{self.__class__.__name__} Score",
             rounded_score,
-            help=self.get_score_description(),
+            help=self.get_score_tooltip(),
         )
 
 
@@ -82,6 +93,9 @@ class Bleu(Score):
         self.auto_reweigh: bool = False
 
     def get_parameters(self):
+        """
+        Set the parameters for BLEU score calculation.
+        """
         n_weights = int(st.number_input("Max Order of N-Grams", 1, 10, 4, 1, "%d"))
         weights = []
         for i in range(1, n_weights + 1):
@@ -90,7 +104,7 @@ class Bleu(Score):
             )
             weights.append(weight)
         smoothing_function = st.toggle(
-            "Smooting Function", False, help="Option to smooth the harsh (0) scores."
+            "Smoothing Function", False, help="Option to smooth the harsh (0) scores."
         )
         self.auto_reweigh = st.toggle(
             "Auto Reweigh", False, help="Option to re-normalize the weights uniformly."
@@ -102,10 +116,10 @@ class Bleu(Score):
         )
 
     def get_score(self, references, hypothesis):
+        """
+        Calculate BLEU score (Bilingual Evaluation Understudy) from Papineni et al. (2002).
+        """
         if self.level == Level.SENTENCE:
-            """Calculate BLEU score (Bilingual Evaluation Understudy) from Papineni, Kishore, Salim Roukos, Todd Ward, and Wei-Jing Zhu. 2002.
-            "BLEU: a method for automatic evaluation of machine translation." In Proceedings of ACL. https://www.aclweb.org/anthology/P02-1040.pdf
-            """
             return sentence_bleu(
                 references,
                 hypothesis,
@@ -114,14 +128,6 @@ class Bleu(Score):
                 self.auto_reweigh,
             )
         elif self.level == Level.CORPUS:
-            """
-            Calculate a single corpus-level BLEU score (aka. system-level BLEU)
-            for all the hypotheses and their respective references.
-
-            Instead of averaging the sentence level BLEU scores (i.e. macro-average precision),
-            the original BLEU metric (Papineni et al. 2002) accounts for the micro-average precision
-            (i.e. summing the numerators and denominators for each hypothesis-reference(s) pairs before the division).
-            """
             return corpus_bleu(
                 references,
                 hypothesis,
@@ -132,7 +138,10 @@ class Bleu(Score):
         else:
             raise ValueError
 
-    def get_score_description(self) -> str:
+    def get_score_tooltip(self) -> str:
+        """
+        Get a tooltip for the BLEU score.
+        """
         if self.level == Level.SENTENCE:
             return """
             Calculate BLEU score (Bilingual Evaluation Understudy) from https://www.aclweb.org/anthology/P02-1040.pdf
@@ -150,7 +159,6 @@ class Bleu(Score):
             raise ValueError
 
     def show_explanation(self, references, hypothesis):
-        # TODO: finish level = "sentence" and add explanation for level = "corpus"
         if self.level == Level.SENTENCE:
             # Tokenize candidate translation and reference translations
             candidate_tokens = hypothesis
@@ -207,6 +215,12 @@ class Bleu(Score):
 
 class Meteor(Score):
     def __init__(self, level: Level):
+        """
+        Initialize the Meteor scoring object with default parameters.
+
+        Parameters:
+        - level (Level): The scoring level, either Level.SENTENCE or Level.CORPUS.
+        """
         self.level = level
         self.preprocess = str.lower
         self.stemmer = PorterStemmer()
@@ -216,6 +230,11 @@ class Meteor(Score):
         self.gamma: float = 0.5
 
     def get_parameters(self):
+        """
+        Get user input for Meteor scoring parameters.
+
+        Uses Streamlit number_input to collect user input for alpha, beta, and gamma parameters.
+        """
         self.alpha = st.number_input(
             "Alpha",
             value=0.9,
@@ -227,12 +246,22 @@ class Meteor(Score):
             help="parameter for controlling shape of penalty as a function of fragmentation.",
         )
         self.gamma = st.number_input(
-            "Alpha",
+            "Gamma",
             value=0.5,
             help="relative weight assigned to fragmentation penalty.",
         )
 
-    def get_score(self, references, hypothesis):
+    def get_score(self, references: List[str], hypothesis: str) -> float:
+        """
+        Calculate and return the Meteor score for the given references and hypothesis.
+
+        Parameters:
+        - references (List[str]): List of reference sentences or documents.
+        - hypothesis (str): The hypothesis sentence or document.
+
+        Returns:
+        - float: The calculated Meteor score.
+        """
         if self.level == Level.SENTENCE:
             return meteor_score(
                 references,
@@ -242,31 +271,41 @@ class Meteor(Score):
                 gamma=self.gamma,
             )
         elif self.level == Level.CORPUS:
-            """The mean of the METEOR scores for all of the hypotheses with multiple references."""
-
+            """
+            The mean of the METEOR scores for all of the hypotheses with multiple references.
+            """
             meteor_score_sentences_list = list()
             [
                 meteor_score_sentences_list.append(meteor_score(expect, predict))
                 for expect, predict in zip(references, hypothesis)
             ]
-            meteor_score_res = np.mean(meteor_score_sentences_list)
+            meteor_score_res = float(np.mean(meteor_score_sentences_list))
             return meteor_score_res
         else:
-            raise ValueError
+            raise ValueError("Invalid scoring level.")
 
-    def get_score_description(self) -> str:
+    def get_score_tooltip(self) -> str:
+        """
+        Return a tooltip explaining the interpretation of the Meteor score.
+
+        Returns:
+        - str: The tooltip text.
+        """
         if self.level == Level.SENTENCE:
             return """
             METEOR score for hypothesis with multiple references as
             described in https://www.cs.cmu.edu/~alavie/METEOR/pdf/Lavie-Agarwal-2007-METEOR.pdf.
 
-            In case of multiple references the best score is chosen. This method iterates over
+            In case of multiple references, the best score is chosen. This method iterates over
             single_meteor_score and picks the best pair among all the references for a given hypothesis.
             """
         elif self.level == Level.CORPUS:
             return """The mean of the METEOR scores for all of the hypotheses with multiple references."""
         else:
-            raise ValueError
+            raise ValueError("Invalid scoring level.")
 
     def show_explanation(self, references, hypothesis):
+        """
+        Display a warning that the explanation functionality is to be implemented.
+        """
         st.warning("To be implemented...")
