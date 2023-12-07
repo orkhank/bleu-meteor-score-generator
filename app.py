@@ -7,7 +7,7 @@ st.set_page_config("Score Generator", page_icon=":gear:")
 
 
 with st.sidebar:
-    st.header("Metric Parameters")
+    st.header("Settings")
     st.checkbox("Show Scores As Percentage", False, key="show_scores_as_percentage")
     level = st.radio(
         "Level",
@@ -18,22 +18,26 @@ with st.sidebar:
 
     assert level is not None
 
-    with st.expander("Meteor"):
+    with st.expander("Meteor Parameters"):
         meteor = Meteor(level)
         meteor.get_parameters()
-    with st.expander("BLEU"):
+    with st.expander("BLEU Parameters"):
         bleu = Bleu(level)
         bleu.get_parameters()
 
 
 if level == Level.SENTENCE:
+    references = st.session_state.setdefault("sentence_references", [])
+    hypothesis = st.session_state.setdefault("sentence_hypothesis", [])
     reference_text_input_column, candidate_text_input_column = st.columns(2)
     with reference_text_input_column:
         reference_text_area = st.text_area("Reference Text")
     with candidate_text_input_column:
         candidate_text_input = st.text_input("Candidate Text")
 
-    if not reference_text_area or not candidate_text_input:
+    if (not reference_text_area or not candidate_text_input) and (
+        not references or not hypothesis
+    ):
         st.warning("Please fill in both of the provided fields.")
         st.stop()
 
@@ -48,6 +52,7 @@ if level == Level.SENTENCE:
         reference_text.split() for reference_text in reference_text_area.splitlines()
     ]
     hypothesis = edited_df["Candidate"].tolist()[0].split()
+
 elif level == Level.CORPUS:
     references = st.session_state.setdefault("corpus_references", [])
     hypothesis = st.session_state.setdefault("corpus_hypothesis", [])

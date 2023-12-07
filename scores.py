@@ -188,7 +188,7 @@ class Meteor(Score):
         self.beta = st.number_input(
             "Beta",
             value=3,
-            help="parameter for controlling shape of penalty as a function of as a function of fragmentation.",
+            help="parameter for controlling shape of penalty as a function of fragmentation.",
         )
         self.gamma = st.number_input(
             "Alpha",
